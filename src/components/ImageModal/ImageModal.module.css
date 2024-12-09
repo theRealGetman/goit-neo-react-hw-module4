@@ -1,0 +1,13 @@
+.modalImage {
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh / 1.5 - 24px);
+}
+
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #4b4b4bb6;
+}
