@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import SearchBar from "./components/SearchBar/SearchBar";
 import { searchPhotos } from "./api/images";
@@ -14,7 +14,7 @@ Modal.setAppElement("#root");
 
 const App = () => {
   const [photos, setPhotos] = useState([]);
-  const [nextPage, setNextPage] = useState(1);
+  const [page, setPage] = useState(1);
   const [hasNextPage, setHasNextPage] = useState(false);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -23,52 +23,38 @@ const App = () => {
   const [modalIsOpen, setModalIsOpen] = useState(false);
   const [modalImage, setModalImage] = useState(null);
 
-  async function handleSubmit(searchQuery) {
-    try {
-      if (searchQuery === query) {
-        return;
+  useEffect(() => {
+    async function search() {
+      try {
+        if (!query) {
+          return;
+        }
+
+        setLoading(true);
+        setError(false);
+
+        const data = await searchPhotos({
+          query: query,
+          page: page,
+        });
+        setPhotos((prevPhotos) => [...prevPhotos, ...data.results]);
+        setHasNextPage(data.total_pages > page);
+      } catch (error) {
+        console.log(error);
+        setError(true);
+      } finally {
+        setLoading(false);
       }
-
-      setQuery(searchQuery);
-      setNextPage(1);
-      setPhotos([]);
-      setError(false);
-      setLoading(true);
-
-      const data = await searchPhotos({ query: searchQuery, page: nextPage });
-      setPhotos(data.results);
-
-      if (data.total_pages > 1) {
-        setHasNextPage(true);
-        setNextPage(nextPage + 1);
-      } else {
-        setHasNextPage(false);
-      }
-    } catch (error) {
-      console.log(error);
-      setError(true);
-    } finally {
-      setLoading(false);
     }
-  }
 
-  async function handleLoadMore() {
-    try {
-      setLoading(true);
-      const data = await searchPhotos({ query, page: nextPage });
-      setPhotos([...photos, ...data.results]);
+    search();
+  }, [query, page]);
 
-      if (data.total_pages > nextPage) {
-        setHasNextPage(true);
-        setNextPage(nextPage + 1);
-      } else {
-        setHasNextPage(false);
-      }
-    } catch (error) {
-      console.log(error);
-      setError(true);
-    } finally {
-      setLoading(false);
+  function handleQueryChange(searchQuery) {
+    if (searchQuery !== query) {
+      setQuery(searchQuery);
+      setPage(1);
+      setPhotos([]);
     }
   }
 
@@ -84,12 +70,12 @@ const App = () => {
         isOpen={modalIsOpen}
         onClose={() => setModalIsOpen(false)}
       />
-      <SearchBar onSubmit={handleSubmit} />
+      <SearchBar onSubmit={handleQueryChange} />
       {photos.length > 0 && (
         <ImageGallery images={photos} onClick={openModal} />
       )}
       {photos.length > 0 && !loading && hasNextPage && (
-        <LoadMoreBtn onClick={handleLoadMore} />
+        <LoadMoreBtn onClick={() => setPage(page + 1)} />
       )}
       {photos.length === 0 && !loading && <Empty />}
       {loading && <Loader />}
